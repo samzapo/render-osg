@@ -177,7 +177,7 @@ void render(::osg::Node* node, const ::std::string& sFileName_){
 
   // Declare and initialize a Vec3 instance to change the
   // position of the node model in the scene
-  osg::Vec3 nodePosit(5,0,0);
+  osg::Vec3 nodePosit(0,0,0);
   nodeXform->setPosition( nodePosit );
 
   // Declare a 'viewer'
@@ -228,17 +228,17 @@ int main(int argc, char** argv)
     std::string option(argv[i]);
 
     if (option.find("-p") != std::string::npos){
-      position[0] = std::atof(&argv[i+1][0]) + 5.0;
+      position[0] = std::atof(&argv[i+1][0]);
       position[1] = std::atof(&argv[i+2][0]);
       position[2] = std::atof(&argv[i+3][0]);
     } else if (option.find("-t") != std::string::npos){
-      target[0] = std::atof(&argv[i+1][0]) + 5.0;
+      target[0] = std::atof(&argv[i+1][0]);
       target[1] = std::atof(&argv[i+2][0]);
       target[2] = std::atof(&argv[i+3][0]);
     }
   }
-//  ::osg::notify(::osg::NOTICE) << "Capturing image from: (" << position[0]-5.0 << ", " << position[1]<<", " << position[2]<< ")  "
-//                                  "of object at  (" << target[0]-5.0 << ", " << target[1]<<", " << target[2]<< ")" << std::endl;
+//  ::osg::notify(::osg::NOTICE) << "Capturing image from: (" << position[0] << ", " << position[1]<<", " << position[2]<< ")  "
+//                                  "of object at  (" << target[0] << ", " << target[1]<<", " << target[2]<< ")" << std::endl;
 
   renderSceneToImage(pRoot,sFileName,position,target,up);
 //  render(pRoot,sFileName);

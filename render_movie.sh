@@ -10,8 +10,7 @@ a=1
 for i in $1/driver.out-*.osg; do
   new=$(printf "img%04d.png" ${a});
   let a=a+1;
-  /Users/samzapo/Projects/Locomotion/Examples/Quadruped/render \
-    $i -p 0.5 1.5 0.5 -t $(awk 'NR == n' n=${a} com.mat) $1/${new};
+  render-osg $i -p 0.5 1.5 0.5 -t $(awk 'NR == n' n=${a} $1/com.mat) $1/${new};
 done
 
 # number all images img0001.png, etc...
