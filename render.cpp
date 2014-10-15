@@ -9,6 +9,19 @@
 #include <osgGA/StandardManipulator>
 #include <osgGA/StateSetManipulator>
 
+#include <osg/LightSource>
+#include <osg/Light>
+#include <osg/LightModel>
+#include <osg/Shader>
+#include <osg/ShadowVolumeOccluder>
+#include <osg/ShadeModel>
+#include <osg/ShaderAttribute>
+#include <osg/ShaderComposer>
+#include <osg/ShapeDrawable>
+
+std::string sceneFile;
+int WIDTH, HEIGHT;
+
 class SnapImageDrawCallback : public ::osg::CameraNode::DrawCallback
 {
        public:
@@ -28,8 +41,8 @@ class SnapImageDrawCallback : public ::osg::CameraNode::DrawCallback
          int x,y,width,height;
          x = camera.getViewport()->x();
          y = camera.getViewport()->y();
-         width = camera.getViewport()->width();
-         height = camera.getViewport()->height();
+         width = (WIDTH != 0)? WIDTH : camera.getViewport()->width();
+         height = (HEIGHT != 0)? HEIGHT : camera.getViewport()->height();
 //         ::osg::notify(::osg::NOTICE) << "Capturing image from: (" << x << ", " << y<< ")    " <<width<< " x "<< height << std::endl;
 
          ::osg::ref_ptr< ::osg::Image> image = new ::osg::Image();
@@ -68,9 +81,15 @@ renderSceneToImage(::osg::Node* node, const ::std::string& sFileName_,double pos
 
   nodeXform->addChild(node);
 
+  if(!sceneFile.empty()){
+    ::osg::Node* sceneNode = osgDB::readNodeFile(sceneFile);
+    nodeXform->addChild(sceneNode);
+  }
+
+
   // Declare and initialize a Vec3 instance to change the
   // position of the node model in the scene
-  osg::Vec3 nodePosit(5,0,0);
+  osg::Vec3 nodePosit(0,0,0);
   nodeXform->setPosition( nodePosit );
 
   // Declare a 'viewer'
@@ -103,13 +122,47 @@ renderSceneToImage(::osg::Node* node, const ::std::string& sFileName_,double pos
   snapImageDrawCallback->setFileName(sFileName_);
   snapImageDrawCallback->setSnapImageOnNextFrame(true);
 
+  // Add a Light to the scene
+  osg::ref_ptr<osg::Group> lightGroup (new osg::Group);
+  osg::ref_ptr<osg::StateSet> lightSS (root->getOrCreateStateSet());
+  osg::ref_ptr<osg::LightSource> lightSource1 = new osg::LightSource;
+
+  double xCenter = 10, yCenter=10;
+  osg::Vec4f lightPosition (osg::Vec4f(xCenter, yCenter,75,1.0f));
+  osg::ref_ptr<osg::Light> light = new osg::Light;
+  light->setLightNum(1);
+  light->setPosition(lightPosition);
+  light->setAmbient(osg::Vec4(0.3f,0.3f,0.3f,0.4f));
+  light->setDiffuse(osg::Vec4(0.2f,0.2f,0.2f,0.5f));
+//  light->setSpecular(osg::Vec4(0.1,0.1,0.1,0.3));
+//  light->setConstantAttenuation(0.5f);
+  light->setDirection(osg::Vec3(0.1f, 0.1f, -1.0f));
+
+  lightSource1->setLight(light.get());
+
+  lightSource1->setLocalStateSetModes(osg::StateAttribute::ON);
+  lightSource1->setStateSetModes(*lightSS,osg::StateAttribute::ON);
+  //osg::StateSet* lightSS (lightGroup->getOrCreateStateSet());
+
+  lightGroup->addChild(lightSource1.get());
+
+  //Light markers: small spheres
+  osg::ref_ptr<osg::Geode> lightMarkerGeode (new osg::Geode);
+  lightMarkerGeode->addDrawable(new osg::ShapeDrawable(new osg::Sphere(osg::Vec3f(xCenter,yCenter,75),10.0f)));
+
+
+  //Tuto 9: lighting code
+//  root->addChild(lightGroup.get());
+  //Tuto 9: Adding the light marker geode
+//  root->addChild(lightMarkerGeode.get());
+
   viewer.realize();
 
   int x,y,width,height;
   x = camera->getViewport()->x();
   y = camera->getViewport()->y();
-  width = camera->getViewport()->width();
-  height = camera->getViewport()->height();
+         width = (WIDTH != 0)? WIDTH : camera->getViewport()->width();
+         height = (HEIGHT != 0)? HEIGHT : camera->getViewport()->height();
 //    ::osg::notify(::osg::NOTICE) << "Capturing image from: (" << x << ", " << y<< ")    " <<width<< " x "<< height << std::endl;
 
   // Prevent this from opening a window by making pbuffer context
@@ -221,7 +274,7 @@ int main(int argc, char** argv)
   double position[3] = {1,1,1};
   double target[3] = {0,0,0};
   double up[3] = {0,0,1};
-
+  WIDTH = 0; HEIGHT = 0;
   for (int i=2; i< argc-1; i++)
   {
     // get the option
@@ -235,10 +288,16 @@ int main(int argc, char** argv)
       target[0] = std::atof(&argv[i+1][0]);
       target[1] = std::atof(&argv[i+2][0]);
       target[2] = std::atof(&argv[i+3][0]);
+    } else if (option.find("-s=") != std::string::npos){
+      sceneFile = std::string(&argv[i][3]);
+    } else if (option.find("-w") != std::string::npos){
+      WIDTH = std::atoi(&argv[i+1][0]);
+      HEIGHT = std::atoi(&argv[i+2][0]);
     }
+
   }
-//  ::osg::notify(::osg::NOTICE) << "Capturing image from: (" << position[0] << ", " << position[1]<<", " << position[2]<< ")  "
-//                                  "of object at  (" << target[0] << ", " << target[1]<<", " << target[2]<< ")" << std::endl;
+  ::osg::notify(::osg::NOTICE) << "Capturing image from: (" << position[0] << ", " << position[1]<<", " << position[2]<< ")  "
+                                  "of object at  (" << target[0] << ", " << target[1]<<", " << target[2]<< ")" << std::endl;
 
   renderSceneToImage(pRoot,sFileName,position,target,up);
 //  render(pRoot,sFileName);
