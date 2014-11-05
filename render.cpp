@@ -9,6 +9,8 @@
 #include <osgGA/StandardManipulator>
 #include <osgGA/StateSetManipulator>
 
+#include <osg/MatrixTransform>
+
 #include <osg/LightSource>
 #include <osg/Light>
 #include <osg/LightModel>
@@ -86,7 +88,6 @@ renderSceneToImage(::osg::Node* node, const ::std::string& sFileName_,double pos
     nodeXform->addChild(sceneNode);
   }
 
-
   // Declare and initialize a Vec3 instance to change the
   // position of the node model in the scene
   osg::Vec3 nodePosit(0,0,0);
@@ -106,6 +107,22 @@ renderSceneToImage(::osg::Node* node, const ::std::string& sFileName_,double pos
   osg::Vec3d target_osg(target[0], target[1], target[2]);
   osg::Vec3d up_osg(up[0], up[1], up[2]);
 
+  osg::Vec3d view = target_osg - position_osg;
+
+  // compute the up and normal vectors 
+  //osg::Quat rot;
+  // compute the rotation from the view vector to the world up
+  //rot.makeRotate( up_osg, view );    // #unused
+  // find the normal vector by crossing the view and world up vectors
+  osg::Vec3d n = view^up_osg;
+  // find desired up vector by crossing the normal vector with the view vector
+  osg::Vec3d up_desired = n^view;
+
+  //osg::Vec3d up_new = rot * up_osg;  // #unused
+
+  // replace the up vector with the desired up
+  up_osg = up_desired;
+
   // set the camera view
 
   osg::Camera* camera = viewer.getCamera();
@@ -113,8 +130,6 @@ renderSceneToImage(::osg::Node* node, const ::std::string& sFileName_,double pos
 
   // setup the manipulator using the camera, if necessary
   viewer.getCameraManipulator()->setHomePosition(position_osg, target_osg, up_osg);
-
-//  camera->setRenderTargetImplementation(::osg::CameraNode::FRAME_BUFFER_OBJECT);
 
   ::osg::ref_ptr<SnapImageDrawCallback> snapImageDrawCallback = new SnapImageDrawCallback();
   camera->setPostDrawCallback (snapImageDrawCallback.get());
@@ -298,6 +313,34 @@ int main(int argc, char** argv)
   }
   ::osg::notify(::osg::NOTICE) << "Capturing image from: (" << position[0] << ", " << position[1]<<", " << position[2]<< ")  "
                                   "of object at  (" << target[0] << ", " << target[1]<<", " << target[2]<< ")" << std::endl;
+
+/*
+  // For tracking a specific target
+  ::osg::Group* rt = pRoot->asGroup();
+  unsigned count = rt->getNumChildren();
+  printf( "root children: %u\n", count );
+  for( unsigned i = 0; i < count; i++ ) {
+    osg::Node* child = rt->getChild( i );
+    printf( "child: %s", child->className() );
+    osg::Group* childgroup = child->asGroup();
+    if( childgroup != 0 ) {
+      unsigned count2 = childgroup->getNumChildren();
+      printf( " children: %u\n", count2 );
+      for( unsigned j = 0; j < count2; j++ ) {
+        osg::Node* grandchild = childgroup->getChild( i );
+        printf( "  grandchild: %s\n", grandchild->className() );
+        osg::MatrixTransform* mt = (osg::MatrixTransform*) grandchild;
+        osg::Matrixd m = mt->getMatrix();
+        std::cout << "  " <<  m(3,0) << "," << m(3,1) << "," << m(3,2) << std::endl;
+        target[0] = m(3,0);
+        target[1] = m(3,1);
+        target[2] = m(3,2);
+      }
+    } else {
+      printf( "\n" );
+    }
+  }
+*/
 
   renderSceneToImage(pRoot,sFileName,position,target,up);
 //  render(pRoot,sFileName);
